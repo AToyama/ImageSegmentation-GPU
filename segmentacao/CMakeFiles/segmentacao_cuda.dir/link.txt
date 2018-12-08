@@ -1,0 +1,1 @@
+/usr/bin/c++      CMakeFiles/segmentacao_cuda.dir/imagem.cpp.o CMakeFiles/segmentacao_cuda.dir/segmentacao_cuda_generated_main_cuda.cu.o  -o segmentacao_cuda  -L/opt/foobar/lib  -L/opt/joestuff/lib -rdynamic -Wl,-Bstatic -lcudart_static -Wl,-Bdynamic -lpthread -ldl -lrt -lfoobar -ljoestuff -Wl,-rpath,/opt/foobar/lib:/opt/joestuff/lib 

@@ -1,0 +1,8 @@
+/home/toyama/Documents/8_Semestre/supercomp/work/ImageSegmentation-GPU/segmentacao_sequencial/CMakeFiles/install.dir
+/home/toyama/Documents/8_Semestre/supercomp/work/ImageSegmentation-GPU/segmentacao_sequencial/CMakeFiles/list_install_components.dir
+/home/toyama/Documents/8_Semestre/supercomp/work/ImageSegmentation-GPU/segmentacao_sequencial/CMakeFiles/rebuild_cache.dir
+/home/toyama/Documents/8_Semestre/supercomp/work/ImageSegmentation-GPU/segmentacao_sequencial/CMakeFiles/edit_cache.dir
+/home/toyama/Documents/8_Semestre/supercomp/work/ImageSegmentation-GPU/segmentacao_sequencial/CMakeFiles/segmentacao_cuda.dir
+/home/toyama/Documents/8_Semestre/supercomp/work/ImageSegmentation-GPU/segmentacao_sequencial/CMakeFiles/segmentacao_sequencial.dir
+/home/toyama/Documents/8_Semestre/supercomp/work/ImageSegmentation-GPU/segmentacao_sequencial/CMakeFiles/install/strip.dir
+/home/toyama/Documents/8_Semestre/supercomp/work/ImageSegmentation-GPU/segmentacao_sequencial/CMakeFiles/install/local.dir
