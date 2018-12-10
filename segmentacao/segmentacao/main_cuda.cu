@@ -19,7 +19,7 @@
 #define MIN(y,x) (y<x?y:x)    // Calcula valor minimo
 
 //scp -i supercomp-certo.pem -r ./segmentacao_sequencial ubuntu@ec2-54-160-10-252.compute-1.amazonaws.com:~/toy
-//scp -i supercomp-certo.pem ./segmentacao/main_cuda.cu ubuntu@ec2-54-160-10-252.compute-1.amazonaws.com:~/toy/segmentacao
+//scp -i supercomp-certo.pem ./segmentacao_sequencial/main_cuda.cu ubuntu@ec2-54-160-10-252.compute-1.amazonaws.com:~/toy/segmentacao_sequencial
 //scp -i supercomp-certo.pem  ubuntu@ec2-54-160-10-252.compute-1.amazonaws.com:~/toy/segmentacao/saida.pgm ./segmentacao
 //ssh -i supercomp-certo.pem ubuntu@ec2-54-160-10-252.compute-1.amazonaws.com
 //nvcc -std=c++11 imagem.cpp main_cuda.cu -o segmentacao_cuda -lnvgraph
@@ -51,7 +51,7 @@ __global__ void edgeFilter(unsigned char *in, unsigned char *out, int rowStart, 
     }
 }
 
-void check_status(nvgraphStatus_t status)
+void check(nvgraphStatus_t status)
 {
     if ((int)status != 0)
     {
@@ -60,48 +60,42 @@ void check_status(nvgraphStatus_t status)
     }
 }
 
-void SSSP(const size_t n, const size_t nnz, float* weights_h, int* source_indices_h, int* destination_offsets_h, int source_vert, float *sssp_h) {
+void SSSP(const size_t n, const size_t nnz, float* weights_h, int* source_indices_h, int* destination_offsets_h, int source_vert, float *sssp_1_h) {
     
     const size_t vertex_numsets = 2, edge_numsets = 1;
     void** vertex_dim;
-
-    nvgraphStatus_t status;
-    nvgraphHandle_t handle;
+    // nvgraph variables
+    nvgraphStatus_t status; nvgraphHandle_t handle;
     nvgraphGraphDescr_t graph;
     nvgraphCSCTopology32I_t CSC_input;
     cudaDataType_t edge_dimT = CUDA_R_32F;
     cudaDataType_t* vertex_dimT;
-
+    // Init host data
+    
     vertex_dim  = (void**)malloc(vertex_numsets*sizeof(void*));
     vertex_dimT = (cudaDataType_t*)malloc(vertex_numsets*sizeof(cudaDataType_t));
     CSC_input = (nvgraphCSCTopology32I_t) malloc(sizeof(struct nvgraphCSCTopology32I_st));
-    vertex_dim[0]= (void*)sssp_h;
-    vertex_dimT[0] = CUDA_R_32F;
-    vertex_dimT[1] = CUDA_R_32F;
+    vertex_dim[0]= (void*)sssp_1_h; vertex_dimT[0] = CUDA_R_32F;
 
-    check_status(nvgraphCreate(&handle));
-    check_status(nvgraphCreateGraphDescr (handle, &graph));
-    
-    CSC_input->nvertices = n;
-    CSC_input->nedges = nnz;
+    check(nvgraphCreate(&handle));
+    check(nvgraphCreateGraphDescr (handle, &graph));
+    CSC_input->nvertices = n; CSC_input->nedges = nnz;
     CSC_input->destination_offsets = destination_offsets_h;
     CSC_input->source_indices = source_indices_h;
+    // Set graph connectivity and properties (tranfers)
+    check(nvgraphSetGraphStructure(handle, graph, (void*)CSC_input, NVGRAPH_CSC_32));
+    check(nvgraphAllocateVertexData(handle, graph, vertex_numsets, vertex_dimT));
+    check(nvgraphAllocateEdgeData  (handle, graph, edge_numsets, &edge_dimT));
+    check(nvgraphSetEdgeData(handle, graph, (void*)weights_h, 0));
     
-    check_status(nvgraphSetGraphStructure(handle, graph, (void*)CSC_input, NVGRAPH_CSC_32));
-    check_status(nvgraphAllocateVertexData(handle, graph, vertex_numsets, vertex_dimT));
-    check_status(nvgraphAllocateEdgeData  (handle, graph, edge_numsets, &edge_dimT));
-    check_status(nvgraphSetEdgeData(handle, graph, (void*)weights_h, 0));
-    
-    check_status(nvgraphSssp(handle, graph, 0,  &source_vert, 0));//retorna o sssp de todos os vertices ao source seed
-    check_status(nvgraphGetVertexData(handle, graph, (void*)sssp_h, 0));
-
-    free(vertex_dim);
-    free(vertex_dimT);
-    free(CSC_input);
-    
-    check_status(nvgraphDestroyGraphDescr (handle, graph));
-    check_status(nvgraphDestroy (handle));
-
+    check(nvgraphSssp(handle, graph, 0,  &source_vert, 0));
+    // Get and print result
+    check(nvgraphGetVertexData(handle, graph, (void*)sssp_1_h, 0));
+    //Clean 
+    free(sssp_1_h); free(vertex_dim);
+    free(vertex_dimT); free(CSC_input);
+    check(nvgraphDestroyGraphDescr(handle, graph));
+    check(nvgraphDestroy(handle));
 
 }
 
@@ -116,7 +110,7 @@ void vectorsGen(imagem *img, std::vector<int> &seeds_fg, std::vector<int> &seeds
 
         int offset = dest_offset[pixel];
         int pixel_row = pixel/img->rows;
-        int pixel_col = pixel - pixel_row*img->cols;
+        int pixel_col = pixel - pixel_row*img->rows;
 
         //if pixel in front seed -> add to vectors ghost seed 
         //elif pixel back seed -> add to vectors ghost seed
@@ -264,19 +258,20 @@ int main(int argc, char **argv) {
     std::cout <<"bg ghost"  << bg_ghost << "\n";
     std::cout <<"fg ghost" << fg_ghost << "\n";
     
-    
 
-    for(int i = 0;i < weights.size();  i++){
+    std::cout << "\n";
+    for(int i = 0; i< weights.size();i++){
+        if(weights[i] != 0){
         std::cout << weights[i] << "\n";
-    }
-    std::cout << "weights: " << weights.size() << "\n";
+}    }
+    
 
     //SSSP(img->total_size, fg_ghost, dest_offset, source, weights, out_fg);
     float * out_fg = (float*)malloc((edge->total_size+2)*sizeof(float));
     //(size, edges, float* weights_h, int* source_indic  es, int* destination_offsets_h, int source_vert, float *sssp_1_h
     SSSP(edge->total_size+2,nnz,weights_,dest_offset_,source_, bg_ghost, out_fg);
 
-    float * out_bg = (float*)malloc((img->total_size+2)*sizeof(float));
+    float * out_bg = (float*)malloc((edge->total_size+2)*sizeof(float));
     SSSP(edge->total_size+2,nnz,weights_,dest_offset_,source_,bg_ghost, out_bg);
  
     //SSSP(img->total_size, bg_ghost, dest_offset, source, weights, out_bg);
