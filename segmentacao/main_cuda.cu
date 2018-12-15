@@ -73,11 +73,9 @@ int SSSP(int size, int edges, std::vector<float> weights, std::vector<int> sourc
     for (int i = 0; i < source.size(); i++){
         source_indices_h[i] = source[i];
     }
-    std::cout << "weight:\n";
     for (int i = 0; i < weights.size(); i++){
         weights_h[i] = weights[i];
     }
-    std::cout << "dest:\n";
     for (int i = 0; i < dest_offset.size(); i++){
         destination_offsets_h[i] = dest_offset[i];
     }
@@ -99,7 +97,6 @@ int SSSP(int size, int edges, std::vector<float> weights, std::vector<int> sourc
     vertex_dim  = (void**)malloc(vertex_numsets*sizeof(void*));
     vertex_dimT = (cudaDataType_t*)malloc(vertex_numsets*sizeof(cudaDataType_t));
     CSC_input = (nvgraphCSCTopology32I_t) malloc(sizeof(struct nvgraphCSCTopology32I_st));
-    std::cout << "DEBUG1\n";
 
     vertex_dim[0]= (void*)sssp_1_h;
     //vertex_dim[1];
@@ -240,7 +237,7 @@ int main(int argc, char **argv) {
     int ncols = img->cols;
     
     // numero de sementes de frente e de fundo
-    std::cout << "numero de sementes de frente e de fundo:\n";
+    std::cout << "\nnumero de sementes de frente e de fundo:\n";
     std::cin >> n_fg >> n_bg;
     
     std::vector<int> seeds_fg(n_fg), seeds_bg(n_bg);
@@ -350,6 +347,9 @@ int main(int argc, char **argv) {
     cudaEventDestroy(total_begin);
     cudaEventDestroy(total_end);
 
+    std::cout << "\n--------------------------------------------\n";
+    std::cout << "--------------------TIME--------------------\n";
+    std::cout << "--------------------------------------------\n\n";
     std::cout << "graph_time: " << graph_time <<  "\n";
     std::cout << "sssp_time: " << sssp_time << "\n";
     std::cout << "output_time:  " << output_time <<  "\n";

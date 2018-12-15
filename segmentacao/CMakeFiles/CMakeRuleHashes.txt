@@ -1,2 +1,0 @@
-# Hashes of file build rules.
-90b6a6f108d7258bcdb4e6360497c0e7 CMakeFiles/segmentacao_cuda.dir/segmentacao_cuda_generated_main_cuda.cu.o

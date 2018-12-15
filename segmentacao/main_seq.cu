@@ -17,13 +17,11 @@ typedef std::pair<double, int> custo_caminho;
 
 typedef std::pair<double *, int *> result_sssp;
 
-
 struct compare_custo_caminho {
     bool operator()(custo_caminho &c1, custo_caminho &c2) {
         return c2.first < c1.first;
     }
 };
-
 
 // FILTRO DE BORDAS
 __global__ void edgeFilter(unsigned char *in, unsigned char *out, int rowEnd, int colEnd) {
@@ -175,7 +173,7 @@ int main(int argc, char **argv) {
     cudaEventRecord(total_begin);
 
     // numero de sementes de frente e de fundo
-    std::cout << "numero de sementes de frente e de fundo:\n";
+    std::cout << "\nnumero de sementes de frente e de fundo:\n";
     std::cin >> n_fg >> n_bg;
 
     std::cout << "posições das sementes de frente:\n";
@@ -267,6 +265,9 @@ int main(int argc, char **argv) {
     cudaEventDestroy(total_begin);
     cudaEventDestroy(total_end);
 
+    std::cout << "\n--------------------------------------------\n";
+    std::cout << "--------------------TIME--------------------\n";
+    std::cout << "--------------------------------------------\n\n";
     std::cout << "graph_time: " << graph_time <<  "\n";
     std::cout << "sssp_time: " << sssp_time << "\n";
     std::cout << "output_time:  " << output_time <<  "\n";
