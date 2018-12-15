@@ -3,7 +3,6 @@
 
 #include <string>
 
-
 typedef struct {
     int rows, cols;
     int total_size;

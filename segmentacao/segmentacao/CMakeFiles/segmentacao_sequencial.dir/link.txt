@@ -1,1 +1,0 @@
-/usr/bin/c++      CMakeFiles/segmentacao_sequencial.dir/main_seq.cpp.o CMakeFiles/segmentacao_sequencial.dir/imagem.cpp.o  -o segmentacao_sequencial  -L/opt/foobar/lib  -L/opt/joestuff/lib -rdynamic 

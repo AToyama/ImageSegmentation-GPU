@@ -3,6 +3,10 @@
 #include <vector>
 #include <assert.h>
 #include <fstream>
+#include <cuda_runtime.h>
+
+#include <thrust/device_vector.h>
+#include <thrust/host_vector.h>
 
 #include "imagem.h"
 
@@ -16,6 +20,31 @@ struct compare_custo_caminho {
         return c2.first < c1.first;
     }
 };
+
+
+// FILTRO DE BORDAS
+__global__ void edgeFilter(unsigned char *in, unsigned char *out, int rowEnd, int colEnd) {
+    
+    int i=blockIdx.x*blockDim.x+threadIdx.x;
+    int j=blockIdx.y*blockDim.y+threadIdx.y;
+
+    int rowStart = 0, colStart = 0;
+
+    int di,dj;
+    
+    if(i < rowEnd && j < colEnd){
+
+        int min = 256;
+        int max = 0;
+        for(di = MAX(rowStart, i - 1); di <= MIN(i + 1, rowEnd - 1); di++) {
+            for(dj = MAX(colStart, j - 1); dj <= MIN(j + 1, colEnd - 1); dj++) {
+                if(min>in[di*(colEnd-colStart)+dj]) min = in[di*(colEnd-colStart)+dj];
+                if(max<in[di*(colEnd-colStart)+dj]) max = in[di*(colEnd-colStart)+dj]; 
+            }
+        }
+        out[i*(colEnd-colStart)+j] = max-min;
+    }
+}
 
 //entrada img e semente
 result_sssp SSSP(imagem *img, std::vector<int> source) {
@@ -124,18 +153,24 @@ int main(int argc, char **argv) {
     std::string path_output(argv[2]);
     imagem *img = read_pgm(path);
     
-    //vector<int> n_fg, n_bg;
     int n_fg, n_bg;
     int x, y;
     
+    float total_time, graph_time, sssp_time, output_time;
+
+    // variaveis de contagem de tempo
+    cudaEvent_t total_begin, total_end, begin, end;
+    cudaEventCreate(&total_begin);
+    cudaEventCreate(&total_end);
+    cudaEventCreate(&begin);
+    cudaEventCreate(&end);
+
+    // inicio da contagem de tempo total do programa
+    cudaEventRecord(total_begin);
+
     // numero de sementes de frente e de fundo
     std::cin >> n_fg >> n_bg;
 
-
-    //só aceita 1 semente de cada tipo
-    //assert(n_fg == 1);
-    //assert(n_bg == 1);
-    
     std::cout << "posições das sementes de frente:\n";
 
     //posição das sementes de frentes
@@ -158,9 +193,39 @@ int main(int argc, char **argv) {
         seed_bg[i] = y * img->cols + x;    
     }
     
+
+    //FILTRO DE BORDAS
+    imagem *edge = new_image(nrows, ncols);
+
+    thrust::device_vector<unsigned char> input(img->pixels, img->pixels + img->total_size );
+    thrust::device_vector<unsigned char> output(edge->pixels, edge->pixels + edge->total_size );
+
+    dim3 dimGrid(ceil(nrows/16.0), ceil(ncols/16.0), 1);
+    dim3 dimBlock(16, 16, 1);
+
+    edgeFilter<<<dimGrid,dimBlock>>>(thrust::raw_pointer_cast(input.data()), thrust::raw_pointer_cast(output.data()), nrows, ncols);
+
+    thrust::host_vector<unsigned char> output_data(output);
+    for(int i = 0; i != output_data.size(); i++) {
+        edge->pixels[i] = output_data[i];
+    }
+
+    write_pgm(edge, "edge.pgm");
+
+    //inicio da contagem de tempo do sssp
+    cudaEventRecord(begin);
+
     // retorna pair<double *, int *> result_sssp; -> <custos, predecessores>
     result_sssp fg = SSSP(img, seed_fg);
     result_sssp bg = SSSP(img, seed_bg);
+
+    //fim da contagem
+    cudaEventRecord(end);
+    cudaEventSynchronize(end);
+    cudaEventElapsedTime(&sssp_time, begin, end);
+
+    //inicio da contagem de tempo da construção da imagem de saida
+    cudaEventRecord(begin);
 
     // começo da geração da saida
     imagem *saida = new_image(img->rows, img->cols);
@@ -180,5 +245,25 @@ int main(int argc, char **argv) {
     //escrita da imagem de saida
     write_pgm(saida, path_output); 
        
+    //fim da contagem
+    cudaEventRecord(end);
+    cudaEventSynchronize(end);
+    cudaEventElapsedTime(&output_time, begin, end);    
+
+    //fim da contagem de tempo total
+    cudaEventRecord(total_end);
+    cudaEventSynchronize(total_end);
+    cudaEventElapsedTime(&total_time, total_begin, total_end);
+
+    cudaEventDestroy(begin);
+    cudaEventDestroy(end);
+    cudaEventDestroy(total_begin);
+    cudaEventDestroy(total_end);
+
+    std::cout << "graph_time: " << graph_time <<  "\n";
+    std::cout << "sssp_time: " << sssp_time << "\n";
+    std::cout << "output_time:  " << output_time <<  "\n";
+    std::cout << "total_time: " << total_time <<  "\n";
+
     return 0;
 }
