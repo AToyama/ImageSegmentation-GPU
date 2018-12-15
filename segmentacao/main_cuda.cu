@@ -227,9 +227,6 @@ int main(int argc, char **argv) {
     cudaEventCreate(&total_end);
     cudaEventCreate(&begin);
     cudaEventCreate(&end);
-
-    // inicio da contagem de tempo total do programa
-    cudaEventRecord(total_begin);
     
     imagem *img = read_pgm(path);
 
@@ -237,7 +234,7 @@ int main(int argc, char **argv) {
     int ncols = img->cols;
     
     // numero de sementes de frente e de fundo
-    std::cout << "\nnumero de sementes de frente e de fundo:\n";
+    std::cout << "\n    numero de sementes de frente e de fundo:\n";
     std::cin >> n_fg >> n_bg;
     
     std::vector<int> seeds_fg(n_fg), seeds_bg(n_bg);
@@ -263,6 +260,9 @@ int main(int argc, char **argv) {
         seeds_bg[i] = y * img->cols + x;    
     }
 
+    // inicio da contagem de tempo total do programa
+    cudaEventRecord(total_begin);
+    
     //FILTRO DE BORDAS
     imagem *edge = new_image(nrows, ncols);
 
